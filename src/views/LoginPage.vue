@@ -30,7 +30,7 @@
       <ion-button
   expand="block"
   fill="outline"
-  @click="router.push('/cadastro')">
+  @click="router.push('/tabs/cadastro')">
   Cadastrar
 </ion-button>
 
@@ -68,11 +68,25 @@ function entrar() {
     return
   }
 
-  alert('Login realizado!')
+  const usuario = JSON.parse(
+    localStorage.getItem('usuario') || '{}'
+  )
+
+  if (
+    email.value !== usuario.email ||
+    senha.value !== usuario.senha
+  ) {
+    alert('E-mail ou senha inválidos')
+    return
+  }
+
+  alert('Login realizado com sucesso!')
 
   router.push('/tabs/album')
 }
+
 </script>
+
 <style scoped>
 .titulo{
   text-align:center;

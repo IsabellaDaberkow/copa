@@ -38,6 +38,55 @@
   </ion-card-content>
 </ion-card>
 
+<ion-card
+  v-for="figurinha in figurinhasFiltradas"
+  :key="figurinha.id"
+>
+
+  <ion-img
+    :src="figurinha.foto"
+    class="foto-jogador"
+  />
+
+  <ion-card-header>
+    {{ figurinha.nome }}
+  </ion-card-header>
+
+  <ion-card-content>
+
+  <p>
+    <strong>Seleção:</strong>
+    {{ figurinha.selecao }}
+  </p>
+
+  <p>
+    Raridade:
+    <ion-badge
+      :color="
+        figurinha.raridade === 'Brilhante'
+          ? 'warning'
+          : figurinha.raridade === 'Rara'
+          ? 'primary'
+          : 'medium'
+      "
+    >
+      {{ figurinha.raridade }}
+    </ion-badge>
+  </p>
+
+  <br>
+
+  <ion-button
+    expand="block"
+    @click="marcarColetada(figurinha.id)"
+  >
+    {{ figurinha.coletada ? 'Coletada' : 'Pendente' }}
+  </ion-button>
+
+</ion-card-content>
+
+</ion-card>
+
       <p>Total: {{ figurinhas.length }}</p>
 
       
@@ -51,17 +100,20 @@ import {
   IonPage,
   IonContent,
   IonCard,
+  IonCardHeader,
   IonCardContent,
+  IonButton,
   IonSearchbar,
   IonSegment,
   IonSegmentButton,
-  IonLabel
+  IonLabel,
+  IonImg,
+  IonBadge
 } from '@ionic/vue'
 
 import { ref, computed } from 'vue'
 
 import { useAlbum } from '../composables/useAlbum'
-import StickerList from '../components/StickerList.vue'
 const { figurinhas, marcarColetada } = useAlbum()
 
 const pesquisa = ref('')
@@ -96,7 +148,7 @@ const figurinhasFiltradas = computed(() => {
 
 <style scoped>
 ion-img{
-  height: 220px;
+  height: 50px;
   object-fit: cover;
 }
 

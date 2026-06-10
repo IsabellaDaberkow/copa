@@ -4,9 +4,7 @@
 
       <ion-router-outlet></ion-router-outlet>
 
-      <ion-tab-bar
-  slot="bottom"
-  color="primary">
+      <ion-tab-bar slot="bottom" color="primary">
 
         <ion-tab-button tab="album" href="/tabs/album">
           <ion-icon :icon="football"></ion-icon>
@@ -21,6 +19,11 @@
         <ion-tab-button tab="perfil" href="/tabs/perfil">
           <ion-icon :icon="person"></ion-icon>
           <ion-label>Perfil</ion-label>
+        </ion-tab-button>
+
+        <ion-tab-button tab="sobre" href="/tabs/sobre">
+          <ion-icon :icon="informationCircle"></ion-icon>
+          <ion-label>Sobre</ion-label>
         </ion-tab-button>
 
       </ion-tab-bar>
@@ -43,6 +46,9 @@ import {
 import {
   football,
   person,
-  personAdd
+  personAdd,
+  informationCircle
 } from 'ionicons/icons'
+
+
 </script>

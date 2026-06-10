@@ -1,56 +1,63 @@
-import { createRouter, createWebHistory } from '@ionic/vue-router'
-import LoginPage from '../views/LoginPage.vue'
-import AlbumPage from '../views/AlbumPage.vue'
-import RegisterPage from '../views/RegisterPage.vue'
-import ResetPasswordPage from '../views/ResetPasswordPage.vue'
-import ProfilePage from '../views/ProfilePage.vue'
-import TabsPage from '../views/TabsPage.vue'
+import { createRouter, createWebHistory } from "@ionic/vue-router";
+import LoginPage from "../views/LoginPage.vue";
+import AlbumPage from "../views/AlbumPage.vue";
+import RegisterPage from "../views/RegisterPage.vue";
+import ResetPasswordPage from "../views/ResetPasswordPage.vue";
+import ProfilePage from "../views/ProfilePage.vue";
+import TabsPage from "../views/TabsPage.vue";
+import AboutPage from "../views/AboutPage.vue";
 
 const routes = [
-
   {
-    path: '/',
-    component: LoginPage
+    path: "/",
+    component: LoginPage,
   },
 
   {
-    path: '/reset',
-    component: ResetPasswordPage
+    path: "/reset",
+    component: ResetPasswordPage,
   },
 
   {
-    path: '/tabs',
+    path: "/cadastro",
+    component: RegisterPage,
+  },
+
+  {
+    path: "/tabs",
     component: TabsPage,
     children: [
-
       {
-        path: '',
-        redirect: '/tabs/album'
+        path: "",
+        redirect: "/tabs/album",
       },
 
       {
-        path: 'album',
-        component: AlbumPage
+        path: "album",
+        component: AlbumPage,
       },
 
       {
-        path: 'cadastro',
-        component: RegisterPage
+        path: "cadastro",
+        component: RegisterPage,
       },
 
       {
-        path: 'perfil',
-        component: ProfilePage
-      }
+        path: "perfil",
+        component: ProfilePage,
+      },
 
-    ]
-  }
-
-]
+      {
+        path: "sobre",
+        component: AboutPage,
+      },
+    ],
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
-})
+  routes,
+});
 
-export default router
+export default router;

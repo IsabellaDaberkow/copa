@@ -62,7 +62,18 @@ function cadastrar() {
     return
   }
 
+  localStorage.setItem(
+    'usuario',
+    JSON.stringify({
+      nome: nome.value,
+      email: email.value,
+      senha: senha.value
+    })
+  )
+
   alert('Cadastro realizado com sucesso!')
+
+  router.push('/')
 }
 
 
