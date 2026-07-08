@@ -1,96 +1,52 @@
 <template>
   <ion-page>
     <ion-content class="ion-padding">
-
       <h1>⚽ Álbum da Copa</h1>
 
-      <ion-searchbar
-  v-model="pesquisa"
-  placeholder="Pesquisar jogador">
-</ion-searchbar>
+      <ion-searchbar v-model="pesquisa" placeholder="Pesquisar jogador" />
 
-<ion-segment v-model="filtro">
+      <ion-segment v-model="filtroSelecionado">
+        <ion-segment-button value="todos">
+          <ion-label>Todas</ion-label>
+        </ion-segment-button>
 
-  <ion-segment-button value="todos">
-    <ion-label>Todas</ion-label>
-  </ion-segment-button>
+        <ion-segment-button value="coletadas">
+          <ion-label>Coletadas</ion-label>
+        </ion-segment-button>
 
-  <ion-segment-button value="coletadas">
-    <ion-label>Coletadas</ion-label>
-  </ion-segment-button>
-
-  <ion-segment-button value="pendentes">
-    <ion-label>Pendentes</ion-label>
-  </ion-segment-button>
-
-</ion-segment>
+        <ion-segment-button value="pendentes">
+          <ion-label>Pendentes</ion-label>
+        </ion-segment-button>
+      </ion-segment>
 
       <ion-card>
-  <ion-card-content>
-    Total de figurinhas: {{ figurinhas.length }}
-  </ion-card-content>
-</ion-card>
+        <ion-card-content>Total de figurinhas: {{ figurinhas.length }}</ion-card-content>
+      </ion-card>
 
-<ion-card>
-  <ion-card-content>
-    Figurinhas coletadas:
-    {{ figurinhas.filter(f => f.coletada).length }}
-  </ion-card-content>
-</ion-card>
+      <ion-card>
+        <ion-card-content>Figurinhas coletadas: {{ figurinhas.filter((f) => f.coletada).length }}</ion-card-content>
+      </ion-card>
 
-<ion-card
-  v-for="figurinha in figurinhasFiltradas"
-  :key="figurinha.id"
->
+      <ion-card v-for="figurinha in figurinhas" :key="figurinha.id">
+        <ion-img :src="figurinha.foto" class="foto-jogador" />
 
-  <ion-img
-    :src="figurinha.foto"
-    class="foto-jogador"
-  />
+        <ion-card-header>{{ figurinha.nome }}</ion-card-header>
 
-  <ion-card-header>
-    {{ figurinha.nome }}
-  </ion-card-header>
+        <ion-card-content>
+          <p><strong>Seleção:</strong> {{ figurinha.selecao }}</p>
 
-  <ion-card-content>
+          <p>
+            Raridade:
+            <ion-badge :color="badgeColor(figurinha.raridade)">{{ figurinha.raridade }}</ion-badge>
+          </p>
 
-  <p>
-    <strong>Seleção:</strong>
-    {{ figurinha.selecao }}
-  </p>
+          <br>
 
-  <p>
-    Raridade:
-    <ion-badge
-      :color="
-        figurinha.raridade === 'Brilhante'
-          ? 'warning'
-          : figurinha.raridade === 'Rara'
-          ? 'primary'
-          : 'medium'
-      "
-    >
-      {{ figurinha.raridade }}
-    </ion-badge>
-  </p>
-
-  <br>
-
-  <ion-button
-    expand="block"
-    @click="marcarColetada(figurinha.id)"
-  >
-    {{ figurinha.coletada ? 'Coletada' : 'Pendente' }}
-  </ion-button>
-
-</ion-card-content>
-
-</ion-card>
-
-      <p>Total: {{ figurinhas.length }}</p>
-
-      
-
+          <ion-button expand="block" @click="aoMarcar(figurinha.id)">
+            {{ figurinha.coletada ? 'Coletada' : 'Pendente' }}
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
@@ -110,49 +66,44 @@ import {
   IonImg,
   IonBadge
 } from '@ionic/vue'
-
-import { ref, computed } from 'vue'
-
+import { onMounted, ref, watch } from 'vue'
 import { useAlbum } from '../composables/useAlbum'
-const { figurinhas, marcarColetada } = useAlbum()
+
+const { figurinhas, listar, pesquisar, marcarColetada, filtro } = useAlbum()
 
 const pesquisa = ref('')
-const filtro = ref('todos')
+const filtroSelecionado = ref<'todos' | 'coletadas' | 'pendentes'>('todos')
 
-const figurinhasFiltradas = computed(() => {
+function badgeColor(raridade: string) {
+  if (raridade === 'Brilhante') return 'warning'
+  if (raridade === 'Rara') return 'primary'
+  return 'medium'
+}
 
-  return figurinhas.value.filter(figurinha => {
+async function aoMarcar(id: number) {
+  await marcarColetada(id)
+}
 
-    const correspondePesquisa =
-      figurinha.nome.toLowerCase().includes(
-        pesquisa.value.toLowerCase()
-      ) ||
-      figurinha.selecao.toLowerCase().includes(
-        pesquisa.value.toLowerCase()
-      )
+watch(pesquisa, async (termo) => {
+  await pesquisar(termo, filtroSelecionado.value)
+})
 
-    if (filtro.value === 'coletadas') {
-      return correspondePesquisa && figurinha.coletada
-    }
+watch(filtroSelecionado, async (status) => {
+  await filtro(status, pesquisa.value)
+})
 
-    if (filtro.value === 'pendentes') {
-      return correspondePesquisa && !figurinha.coletada
-    }
-
-    return correspondePesquisa
-
-  })
-
+onMounted(() => {
+  void listar()
 })
 </script>
 
 <style scoped>
-ion-img{
+ion-img {
   height: 500px;
   object-fit: fill;
 }
 
-ion-card{
+ion-card {
   border-radius: 12px;
 }
 </style>

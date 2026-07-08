@@ -21,6 +21,11 @@
           <ion-label>Perfil</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="conquistas" href="/tabs/conquistas">
+          <ion-icon :icon="trophy"></ion-icon>
+          <ion-label>Conquistas</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="sobre" href="/tabs/sobre">
           <ion-icon :icon="informationCircle"></ion-icon>
           <ion-label>Sobre</ion-label>
@@ -47,7 +52,8 @@ import {
   football,
   person,
   personAdd,
-  informationCircle
+  informationCircle,
+  trophy
 } from 'ionicons/icons'
 
 

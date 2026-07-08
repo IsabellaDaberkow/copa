@@ -49,6 +49,81 @@ const figurinhasPadrao = [
   }
 ]
 
+const achievementDefinitions = [
+  {
+    id: 1,
+    nome: 'Primeira Figurinha',
+    descricao: 'Desbloquear ao coletar a primeira figurinha.',
+    icone: '🥇'
+  },
+  {
+    id: 2,
+    nome: 'Iniciante',
+    descricao: 'Coletar 10 figurinhas.',
+    icone: '🌱'
+  },
+  {
+    id: 3,
+    nome: 'Colecionador',
+    descricao: 'Coletar 25 figurinhas.',
+    icone: '🧺'
+  },
+  {
+    id: 4,
+    nome: 'Álbum em Construção',
+    descricao: 'Coletar 50 figurinhas.',
+    icone: '📚'
+  },
+  {
+    id: 5,
+    nome: 'Caçador de Raras',
+    descricao: 'Coletar 5 figurinhas raras.',
+    icone: '🦌'
+  },
+  {
+    id: 6,
+    nome: 'Especialista em Raras',
+    descricao: 'Coletar 15 figurinhas raras.',
+    icone: '💎'
+  },
+  {
+    id: 7,
+    nome: 'Brilho Inicial',
+    descricao: 'Coletar 3 figurinhas brilhantes.',
+    icone: '✨'
+  },
+  {
+    id: 8,
+    nome: 'Mestre das Brilhantes',
+    descricao: 'Coletar 10 figurinhas brilhantes.',
+    icone: '🌟'
+  },
+  {
+    id: 9,
+    nome: 'Álbum Quase Completo',
+    descricao: 'Completar 80% do álbum.',
+    icone: '🏁'
+  },
+  {
+    id: 10,
+    nome: 'Campeão da Copa',
+    descricao: 'Completar 100% do álbum.',
+    icone: '🏆'
+  },
+  {
+    id: 11,
+    nome: 'Coleção Brasil',
+    descricao: 'Completar todas as figurinhas da seleção brasileira.',
+    icone: '🇧🇷'
+  },
+  {
+    id: 12,
+    nome: 'Coleção Argentina',
+    descricao: 'Completar todas as figurinhas da seleção argentina.',
+    icone: '🇦🇷'
+  }
+]
+
 async function ensureDatabase() {
   if (initialized && db) {
     return
@@ -86,6 +161,25 @@ CREATE TABLE IF NOT EXISTS figurinhas(
   raridade TEXT NOT NULL
 );
 `)
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS achievements (
+        id INTEGER PRIMARY KEY,
+        nome TEXT NOT NULL,
+        descricao TEXT NOT NULL,
+        icone TEXT NOT NULL
+      );
+    `)
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS user_achievements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        achievement_id INTEGER NOT NULL,
+        data_desbloqueio TEXT,
+        UNIQUE(user_id, achievement_id)
+      );
+    `)
  
     await db.execute(`
       CREATE TABLE IF NOT EXISTS contatos (
@@ -113,6 +207,18 @@ CREATE TABLE IF NOT EXISTS figurinhas(
         )
       }
     }
+
+    const achievementsCountResult = await getDB().query('SELECT COUNT(*) AS total FROM achievements;')
+    const achievementsTotal = Number(achievementsCountResult.values?.[0]?.total ?? 0)
+
+    if (achievementsTotal === 0) {
+      for (const achievement of achievementDefinitions) {
+        await getDB().run(
+          `INSERT INTO achievements (id, nome, descricao, icone) VALUES (?, ?, ?, ?);`,
+          [achievement.id, achievement.nome, achievement.descricao, achievement.icone]
+        )
+      }
+    }
  
     initialized = true
  
@@ -129,6 +235,106 @@ export function getDB() {
   }
  
   return db
+}
+
+function getCurrentUserId() {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const sessao = localStorage.getItem('usuarioLogado')
+
+  if (!sessao) {
+    return null
+  }
+
+  try {
+    const dados = JSON.parse(sessao) as { id?: number }
+    return dados.id ?? null
+  } catch (error) {
+    console.error('Erro ao ler usuário atual', error)
+    return null
+  }
+}
+
+export async function recalcularConquistasDB(userId: number | null = getCurrentUserId()) {
+  await ensureDatabase()
+
+  if (!userId) {
+    return []
+  }
+
+  const totalFigurinhasResult = await getDB().query('SELECT COUNT(*) AS total FROM figurinhas;')
+  const totalFigurinhas = Number(totalFigurinhasResult.values?.[0]?.total ?? 0)
+
+  const coletadasResult = await getDB().query('SELECT COUNT(*) AS total FROM figurinhas WHERE coletada = 1;')
+  const totalColetadas = Number(coletadasResult.values?.[0]?.total ?? 0)
+
+  const rarasResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE coletada = 1 AND raridade = 'Rara';")
+  const rarasColetadas = Number(rarasResult.values?.[0]?.total ?? 0)
+
+  const brilhantesResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE coletada = 1 AND raridade = 'Brilhante';")
+  const brilhantesColetadas = Number(brilhantesResult.values?.[0]?.total ?? 0)
+
+  const brasilTotalResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE selecao = 'Brasil';")
+  const brasilTotal = Number(brasilTotalResult.values?.[0]?.total ?? 0)
+
+  const brasilColetadasResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE selecao = 'Brasil' AND coletada = 1;")
+  const brasilColetadas = Number(brasilColetadasResult.values?.[0]?.total ?? 0)
+
+  const argentinaTotalResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE selecao = 'Argentina';")
+  const argentinaTotal = Number(argentinaTotalResult.values?.[0]?.total ?? 0)
+
+  const argentinaColetadasResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE selecao = 'Argentina' AND coletada = 1;")
+  const argentinaColetadas = Number(argentinaColetadasResult.values?.[0]?.total ?? 0)
+
+  const percentual = totalFigurinhas > 0 ? totalColetadas / totalFigurinhas : 0
+
+  const desbloqueadas = new Set<number>()
+
+  if (totalColetadas >= 1) desbloqueadas.add(1)
+  if (totalColetadas >= 10) desbloqueadas.add(2)
+  if (totalColetadas >= 25) desbloqueadas.add(3)
+  if (totalColetadas >= 50) desbloqueadas.add(4)
+  if (rarasColetadas >= 5) desbloqueadas.add(5)
+  if (rarasColetadas >= 15) desbloqueadas.add(6)
+  if (brilhantesColetadas >= 3) desbloqueadas.add(7)
+  if (brilhantesColetadas >= 10) desbloqueadas.add(8)
+  if (percentual >= 0.8) desbloqueadas.add(9)
+  if (percentual >= 1) desbloqueadas.add(10)
+  if (brasilTotal > 0 && brasilColetadas >= brasilTotal) desbloqueadas.add(11)
+  if (argentinaTotal > 0 && argentinaColetadas >= argentinaTotal) desbloqueadas.add(12)
+
+  await getDB().run('DELETE FROM user_achievements WHERE user_id = ?;', [userId])
+
+  for (const achievementId of desbloqueadas) {
+    await getDB().run(
+      'INSERT INTO user_achievements (user_id, achievement_id, data_desbloqueio) VALUES (?, ?, ?);',
+      [userId, achievementId, new Date().toISOString()]
+    )
+  }
+
+  return Array.from(desbloqueadas)
+}
+
+export async function listarConquistasDB(userId: number | null = getCurrentUserId()) {
+  await ensureDatabase()
+
+  const idParaBuscar = userId ?? -1
+
+  const result = await getDB().query(
+    `SELECT a.id, a.nome, a.descricao, a.icone, CASE WHEN ua.id IS NOT NULL THEN 1 ELSE 0 END AS desbloqueada, ua.data_desbloqueio
+     FROM achievements a
+     LEFT JOIN user_achievements ua ON ua.achievement_id = a.id AND ua.user_id = ?
+     ORDER BY a.id;`,
+    [idParaBuscar]
+  )
+
+  return (result.values || []).map((item: any) => ({
+    ...item,
+    desbloqueada: Boolean(item.desbloqueada),
+    data_desbloqueio: item.data_desbloqueio ?? null
+  }))
 }
  
 export async function initDatabase() {
@@ -371,6 +577,10 @@ export async function atualizarFigurinhaDB(id: number, updates: Partial<{
     valores
   )
 
+  if (updates.coletada !== undefined) {
+    await recalcularConquistasDB()
+  }
+
   const result = await getDB().query(
     'SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas WHERE id = ?;',
     [id]
@@ -390,6 +600,34 @@ export async function pesquisarFigurinhasDB(termo: string) {
     'SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas WHERE nome LIKE ? OR selecao LIKE ? ORDER BY id;',
     [busca, busca]
   )
+
+  return (result.values || []).map((item: any) => ({
+    ...item,
+    coletada: Boolean(item.coletada)
+  }))
+}
+
+export async function filtrarFigurinhasDB(options: { termo?: string; coletada?: boolean | null }) {
+  await ensureDatabase()
+
+  const whereClauses: string[] = []
+  const valores: any[] = []
+
+  const termo = options.termo?.trim() ?? ''
+  if (termo) {
+    whereClauses.push('(nome LIKE ? OR selecao LIKE ?)')
+    valores.push(`%${termo}%`, `%${termo}%`)
+  }
+
+  if (options.coletada !== undefined && options.coletada !== null) {
+    whereClauses.push('coletada = ?')
+    valores.push(options.coletada ? 1 : 0)
+  }
+
+  const whereSql = whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : ''
+  const query = `SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas${whereSql} ORDER BY id;`
+
+  const result = await getDB().query(query, valores)
 
   return (result.values || []).map((item: any) => ({
     ...item,

@@ -1,7 +1,6 @@
 <template>
   <ion-page>
     <ion-content class="ion-padding">
-
       <h1>📝 Cadastro</h1>
 
       <ion-input v-model="nome" label="Nome Completo" fill="outline" />
@@ -10,67 +9,60 @@
       <ion-input v-model="email" label="E-mail" fill="outline" />
       <br>
 
-      <ion-input
-        v-model="senha"
-        type="password"
-        label="Senha"
-        fill="outline" />
+      <ion-input v-model="senha" type="password" label="Senha" fill="outline" />
 
       <br>
 
-      <ion-button expand="block" @click="cadastrar">
+      <ion-button expand="block" @click="cadastrarUsuario">
         Cadastrar
       </ion-button>
 
-      <ion-button
-  expand="block"
-  fill="outline"
-  @click="router.push('/')"
->
-  Voltar
-</ion-button>
-
+      <ion-button expand="block" fill="outline" @click="router.push('/')">
+        Voltar
+      </ion-button>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-
 import {
   IonPage,
   IonContent,
   IonInput,
-  IonButton
+  IonButton,
+  toastController
 } from '@ionic/vue'
 import { useRouter } from 'vue-router'
-import { addUsuario } from '@/services/database'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { cadastrar } = useAuth()
+
 const nome = ref('')
 const email = ref('')
 const senha = ref('')
 
-async function cadastrar() {
-  if (!nome.value || !email.value || !senha.value) {
-    alert('Preencha todos os campos')
-    return
-  }
+async function mostrarToast(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
+  const toast = await toastController.create({
+    message,
+    duration: 1800,
+    color,
+    position: 'top'
+  })
 
-  if (senha.value.length < 6) {
-    alert('Senha fraca')
-    return
-  }
-
-  try {
-    await addUsuario(nome.value, email.value, senha.value)
-    alert('Cadastro realizado!')
-    router.push('/')
-  } catch (error) {
-    console.error('Erro ao cadastrar usuário', error)
-    alert('Erro ao realizar cadastro')
-  }
+  await toast.present()
 }
 
+async function cadastrarUsuario() {
+  const resultado = await cadastrar(nome.value, email.value, senha.value)
 
+  if (!resultado.ok) {
+    await mostrarToast(resultado.message, 'warning')
+    return
+  }
+
+  await mostrarToast(resultado.message)
+  router.push('/')
+}
 </script>

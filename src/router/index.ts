@@ -6,6 +6,7 @@ import ResetPasswordPage from "../views/ResetPasswordPage.vue";
 import ProfilePage from "../views/ProfilePage.vue";
 import TabsPage from "../views/TabsPage.vue";
 import AboutPage from "../views/AboutPage.vue";
+import AchievementsPage from "../views/AchievementsPage.vue";
 
 const routes = [
   {
@@ -45,6 +46,11 @@ const routes = [
       {
         path: "perfil",
         component: ProfilePage,
+      },
+
+      {
+        path: "conquistas",
+        component: AchievementsPage,
       },
 
       {
