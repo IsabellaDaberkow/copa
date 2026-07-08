@@ -3,7 +3,8 @@ import {
   listarFigurinhasDB,
   atualizarFigurinhaDB,
   pesquisarFigurinhasDB,
-  filtrarFigurinhasDB
+  filtrarFigurinhasDB,
+  recalcularConquistasDB
 } from '../services/database'
 
 interface Figurinha {
@@ -63,6 +64,7 @@ export function useAlbum() {
       figurinhas.value = figurinhas.value.map((item) =>
         item.id === id ? { ...item, coletada: Boolean(atualizada.coletada) } : item
       )
+      await recalcularConquistasDB()
       return figurinha
     }
 

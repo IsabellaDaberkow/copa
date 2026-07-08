@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAlbum } from '@/composables/useAlbum'
-import { listarFigurinhasDB, atualizarFigurinhaDB, filtrarFigurinhasDB } from '@/services/database'
+import { listarFigurinhasDB, atualizarFigurinhaDB, filtrarFigurinhasDB, recalcularConquistasDB } from '@/services/database'
 
 vi.mock('@/services/database', () => ({
   listarFigurinhasDB: vi.fn(),
   atualizarFigurinhaDB: vi.fn(),
   filtrarFigurinhasDB: vi.fn(),
-  pesquisarFigurinhasDB: vi.fn()
+  pesquisarFigurinhasDB: vi.fn(),
+  recalcularConquistasDB: vi.fn()
 }))
 
 describe('useAlbum', () => {
@@ -26,6 +27,7 @@ describe('useAlbum', () => {
       coletada: true,
       raridade: 'Comum'
     })
+    vi.mocked(recalcularConquistasDB).mockResolvedValue([1, 2])
 
     const { figurinhas, listar, marcarColetada } = useAlbum()
 
