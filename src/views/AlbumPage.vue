@@ -148,8 +148,8 @@ const figurinhasFiltradas = computed(() => {
 
 <style scoped>
 ion-img{
-  height: 50px;
-  object-fit: cover;
+  height: 500px;
+  object-fit: fill;
 }
 
 ion-card{

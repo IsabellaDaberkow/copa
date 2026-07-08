@@ -1,23 +1,40 @@
-import { ref } from 'vue'
-import { stickers } from '../data/stickers'
+import { onMounted, ref } from 'vue'
+import {
+  listarFigurinhas,
+  atualizarFigurinha,
+  type Figurinha
+} from '../data/stickers'
 
-const figurinhas = ref(stickers)
+const figurinhas = ref<Figurinha[]>([])
 
 export function useAlbum() {
+  async function carregarFigurinhas() {
+    figurinhas.value = await listarFigurinhas()
+  }
 
-  function marcarColetada(id:number){
+  async function marcarColetada(id: number) {
+    const figurinha = figurinhas.value.find((f) => f.id === id)
 
-    const figurinha = figurinhas.value.find(
-      f => f.id === id
-    )
+    if (!figurinha) {
+      return
+    }
 
-    if(figurinha){
-      figurinha.coletada = !figurinha.coletada
+    const atualizada = await atualizarFigurinha(id, {
+      coletada: !figurinha.coletada
+    })
+
+    if (atualizada) {
+      figurinha.coletada = atualizada.coletada
     }
   }
 
+  onMounted(() => {
+    void carregarFigurinhas()
+  })
+
   return {
     figurinhas,
-    marcarColetada
+    marcarColetada,
+    carregarFigurinhas
   }
 }

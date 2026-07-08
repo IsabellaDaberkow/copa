@@ -25,7 +25,7 @@
       <ion-button
   expand="block"
   fill="outline"
-  @click="router.push('/tabs/album')"
+  @click="router.push('/')"
 >
   Voltar
 </ion-button>
@@ -44,14 +44,14 @@ import {
   IonButton
 } from '@ionic/vue'
 import { useRouter } from 'vue-router'
+import { addUsuario } from '@/services/database'
 
 const router = useRouter()
 const nome = ref('')
 const email = ref('')
 const senha = ref('')
 
-function cadastrar() {
-
+async function cadastrar() {
   if (!nome.value || !email.value || !senha.value) {
     alert('Preencha todos os campos')
     return
@@ -62,18 +62,14 @@ function cadastrar() {
     return
   }
 
-  localStorage.setItem(
-    'usuario',
-    JSON.stringify({
-      nome: nome.value,
-      email: email.value,
-      senha: senha.value
-    })
-  )
-
-  alert('Cadastro realizado com sucesso!')
-
-  router.push('/')
+  try {
+    await addUsuario(nome.value, email.value, senha.value)
+    alert('Cadastro realizado!')
+    router.push('/')
+  } catch (error) {
+    console.error('Erro ao cadastrar usuário', error)
+    alert('Erro ao realizar cadastro')
+  }
 }
 
 
