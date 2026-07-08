@@ -396,3 +396,31 @@ export async function pesquisarFigurinhasDB(termo: string) {
     coletada: Boolean(item.coletada)
   }))
 }
+
+export async function filtrarFigurinhasDB(options: { termo?: string; coletada?: boolean | null }) {
+  await ensureDatabase()
+
+  const whereClauses: string[] = []
+  const valores: any[] = []
+
+  const termo = options.termo?.trim() ?? ''
+  if (termo) {
+    whereClauses.push('(nome LIKE ? OR selecao LIKE ?)')
+    valores.push(`%${termo}%`, `%${termo}%`)
+  }
+
+  if (options.coletada !== undefined && options.coletada !== null) {
+    whereClauses.push('coletada = ?')
+    valores.push(options.coletada ? 1 : 0)
+  }
+
+  const whereSql = whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : ''
+  const query = `SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas${whereSql} ORDER BY id;`
+
+  const result = await getDB().query(query, valores)
+
+  return (result.values || []).map((item: any) => ({
+    ...item,
+    coletada: Boolean(item.coletada)
+  }))
+}
