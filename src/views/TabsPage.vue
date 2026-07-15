@@ -26,6 +26,11 @@
           <ion-label>Conquistas</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="estatisticas" href="/tabs/estatisticas">
+          <ion-icon :icon="statsChart"></ion-icon>
+          <ion-label>Estatísticas</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="sobre" href="/tabs/sobre">
           <ion-icon :icon="informationCircle"></ion-icon>
           <ion-label>Sobre</ion-label>
@@ -53,7 +58,8 @@ import {
   person,
   personAdd,
   informationCircle,
-  trophy
+  trophy,
+  statsChart
 } from 'ionicons/icons'
 
 
