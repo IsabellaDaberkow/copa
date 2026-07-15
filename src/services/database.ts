@@ -10,6 +10,12 @@ let db: SQLiteDBConnection | null = null
 let initialized = false
  
 const sqliteConnection = new SQLiteConnection(CapacitorSQLite)
+
+function emitCollectionChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('collection:updated'))
+  }
+}
  
 const figurinhasPadrao = [
   {
@@ -158,9 +164,22 @@ CREATE TABLE IF NOT EXISTS figurinhas(
   selecao TEXT NOT NULL,
   foto TEXT NOT NULL,
   coletada INTEGER DEFAULT 0,
-  raridade TEXT NOT NULL
+  raridade TEXT NOT NULL,
+  favorite INTEGER DEFAULT 0,
+  collected_at DATETIME
 );
 `)
+
+    const figurinhaInfoResult = await getDB().query('PRAGMA table_info(figurinhas);')
+    const figurinhaColumns = (figurinhaInfoResult.values || []).map((item: any) => item.name)
+
+    if (!figurinhaColumns.includes('favorite')) {
+      await getDB().execute('ALTER TABLE figurinhas ADD COLUMN favorite INTEGER DEFAULT 0;')
+    }
+
+    if (!figurinhaColumns.includes('collected_at')) {
+      await getDB().execute('ALTER TABLE figurinhas ADD COLUMN collected_at DATETIME;')
+    }
 
     await db.execute(`
       CREATE TABLE IF NOT EXISTS achievements (
@@ -196,13 +215,15 @@ CREATE TABLE IF NOT EXISTS figurinhas(
     if (total === 0) {
       for (const figurinha of figurinhasPadrao) {
         await getDB().run(
-          `INSERT INTO figurinhas (nome, selecao, foto, coletada, raridade) VALUES (?, ?, ?, ?, ?);`,
+          `INSERT INTO figurinhas (nome, selecao, foto, coletada, raridade, favorite, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?);`,
           [
             figurinha.nome,
             figurinha.selecao,
             figurinha.foto,
             figurinha.coletada ? 1 : 0,
-            figurinha.raridade
+            figurinha.raridade,
+            0,
+            null
           ]
         )
       }
@@ -490,12 +511,14 @@ export async function addFigurinhaDB(payload: {
   foto: string
   coletada?: boolean
   raridade: string
+  favorite?: boolean
+  collected_at?: string | null
 }) {
   await ensureDatabase()
 
   const query = `
-    INSERT INTO figurinhas (nome, selecao, foto, coletada, raridade)
-    VALUES (?, ?, ?, ?, ?);
+    INSERT INTO figurinhas (nome, selecao, foto, coletada, raridade, favorite, collected_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?);
   `
 
   await getDB().run(query, [
@@ -503,16 +526,21 @@ export async function addFigurinhaDB(payload: {
     payload.selecao,
     payload.foto,
     payload.coletada ? 1 : 0,
-    payload.raridade
+    payload.raridade,
+    payload.favorite ? 1 : 0,
+    payload.collected_at ?? null
   ])
 
   const result = await getDB().query('SELECT last_insert_rowid() AS id;')
   const id = Number(result.values?.[0]?.id ?? 0)
 
+  emitCollectionChanged()
+
   return {
     id,
     ...payload,
-    coletada: Boolean(payload.coletada)
+    coletada: Boolean(payload.coletada),
+    favorite: Boolean(payload.favorite)
   }
 }
 
@@ -520,12 +548,13 @@ export async function listarFigurinhasDB() {
   await ensureDatabase()
 
   const result = await getDB().query(
-    'SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas ORDER BY id;'
+    'SELECT id, nome, selecao, foto, coletada, raridade, favorite, collected_at FROM figurinhas ORDER BY id;'
   )
 
   return (result.values || []).map((item: any) => ({
     ...item,
-    coletada: Boolean(item.coletada)
+    coletada: Boolean(item.coletada),
+    favorite: Boolean(item.favorite)
   }))
 }
 
@@ -535,6 +564,8 @@ export async function atualizarFigurinhaDB(id: number, updates: Partial<{
   foto: string
   coletada: boolean
   raridade: string
+  favorite: boolean
+  collected_at: string | null
 }>) {
   await ensureDatabase()
 
@@ -559,6 +590,19 @@ export async function atualizarFigurinhaDB(id: number, updates: Partial<{
   if (updates.coletada !== undefined) {
     campos.push('coletada = ?')
     valores.push(updates.coletada ? 1 : 0)
+
+    if (updates.collected_at !== undefined) {
+      campos.push('collected_at = ?')
+      valores.push(updates.collected_at)
+    } else {
+      campos.push('collected_at = ?')
+      valores.push(updates.coletada ? new Date().toISOString() : null)
+    }
+  }
+
+  if (updates.favorite !== undefined) {
+    campos.push('favorite = ?')
+    valores.push(updates.favorite ? 1 : 0)
   }
 
   if (updates.raridade !== undefined) {
@@ -577,18 +621,20 @@ export async function atualizarFigurinhaDB(id: number, updates: Partial<{
     valores
   )
 
-  if (updates.coletada !== undefined) {
+  if (updates.coletada !== undefined || updates.favorite !== undefined) {
     await recalcularConquistasDB()
   }
 
+  emitCollectionChanged()
+
   const result = await getDB().query(
-    'SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas WHERE id = ?;',
+    'SELECT id, nome, selecao, foto, coletada, raridade, favorite, collected_at FROM figurinhas WHERE id = ?;',
     [id]
   )
 
   const item = result.values?.[0]
 
-  return item ? { ...item, coletada: Boolean(item.coletada) } : null
+  return item ? { ...item, coletada: Boolean(item.coletada), favorite: Boolean(item.favorite) } : null
 }
 
 export async function pesquisarFigurinhasDB(termo: string) {
@@ -597,17 +643,18 @@ export async function pesquisarFigurinhasDB(termo: string) {
   const busca = `%${termo}%`
 
   const result = await getDB().query(
-    'SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas WHERE nome LIKE ? OR selecao LIKE ? ORDER BY id;',
+    'SELECT id, nome, selecao, foto, coletada, raridade, favorite, collected_at FROM figurinhas WHERE nome LIKE ? OR selecao LIKE ? ORDER BY id;',
     [busca, busca]
   )
 
   return (result.values || []).map((item: any) => ({
     ...item,
-    coletada: Boolean(item.coletada)
+    coletada: Boolean(item.coletada),
+    favorite: Boolean(item.favorite)
   }))
 }
 
-export async function filtrarFigurinhasDB(options: { termo?: string; coletada?: boolean | null }) {
+export async function filtrarFigurinhasDB(options: { termo?: string; coletada?: boolean | null; favorite?: boolean | null }) {
   await ensureDatabase()
 
   const whereClauses: string[] = []
@@ -624,13 +671,84 @@ export async function filtrarFigurinhasDB(options: { termo?: string; coletada?: 
     valores.push(options.coletada ? 1 : 0)
   }
 
+  if (options.favorite !== undefined && options.favorite !== null) {
+    whereClauses.push('favorite = ?')
+    valores.push(options.favorite ? 1 : 0)
+  }
+
   const whereSql = whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : ''
-  const query = `SELECT id, nome, selecao, foto, coletada, raridade FROM figurinhas${whereSql} ORDER BY id;`
+  const query = `SELECT id, nome, selecao, foto, coletada, raridade, favorite, collected_at FROM figurinhas${whereSql} ORDER BY id;`
 
   const result = await getDB().query(query, valores)
 
   return (result.values || []).map((item: any) => ({
     ...item,
-    coletada: Boolean(item.coletada)
+    coletada: Boolean(item.coletada),
+    favorite: Boolean(item.favorite)
+  }))
+}
+
+export async function getCollectionStatsDB() {
+  await ensureDatabase()
+
+  const totalResult = await getDB().query('SELECT COUNT(*) AS total FROM figurinhas;')
+  const total = Number(totalResult.values?.[0]?.total ?? 0)
+
+  const coletadasResult = await getDB().query('SELECT COUNT(*) AS total FROM figurinhas WHERE coletada = 1;')
+  const coletadas = Number(coletadasResult.values?.[0]?.total ?? 0)
+
+  const faltantes = Math.max(total - coletadas, 0)
+  const rarasResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE coletada = 1 AND raridade = 'Rara';")
+  const raras = Number(rarasResult.values?.[0]?.total ?? 0)
+  const brilhantesResult = await getDB().query("SELECT COUNT(*) AS total FROM figurinhas WHERE coletada = 1 AND raridade = 'Brilhante';")
+  const brilhantes = Number(brilhantesResult.values?.[0]?.total ?? 0)
+  const percentual = total > 0 ? (coletadas / total) * 100 : 0
+  const score = (coletadas * 1) + (raras * 4) + (brilhantes * 9)
+
+  let nivel = 'Bronze'
+  let proximoNivel = 'Prata'
+  let progresso = 0
+
+  if (score > 500) {
+    nivel = 'Diamante'
+    proximoNivel = 'Máximo'
+    progresso = 100
+  } else if (score >= 251) {
+    nivel = 'Ouro'
+    proximoNivel = 'Diamante'
+    progresso = Math.min(((score - 251) / 250) * 100, 100)
+  } else if (score >= 101) {
+    nivel = 'Prata'
+    proximoNivel = 'Ouro'
+    progresso = Math.min(((score - 101) / 150) * 100, 100)
+  } else {
+    nivel = 'Bronze'
+    proximoNivel = 'Prata'
+    progresso = Math.min((score / 100) * 100, 100)
+  }
+
+  return {
+    total,
+    coletadas,
+    faltantes,
+    raras,
+    brilhantes,
+    percentual,
+    score,
+    nivel,
+    proximoNivel,
+    progresso
+  }
+}
+
+export async function getRecentCollectionsDB(limit = 10, order: 'asc' | 'desc' = 'desc') {
+  await ensureDatabase()
+
+  const query = `SELECT id, nome, selecao, collected_at FROM figurinhas WHERE coletada = 1 AND collected_at IS NOT NULL ORDER BY collected_at ${order === 'asc' ? 'ASC' : 'DESC'} LIMIT ?;`
+  const result = await getDB().query(query, [limit])
+
+  return (result.values || []).map((item: any) => ({
+    ...item,
+    collected_at: item.collected_at ?? null
   }))
 }

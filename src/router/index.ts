@@ -7,6 +7,7 @@ import ProfilePage from "../views/ProfilePage.vue";
 import TabsPage from "../views/TabsPage.vue";
 import AboutPage from "../views/AboutPage.vue";
 import AchievementsPage from "../views/AchievementsPage.vue";
+import StatisticsPage from "../views/StatisticsPage.vue";
 
 const routes = [
   {
@@ -51,6 +52,11 @@ const routes = [
       {
         path: "conquistas",
         component: AchievementsPage,
+      },
+
+      {
+        path: "estatisticas",
+        component: StatisticsPage,
       },
 
       {

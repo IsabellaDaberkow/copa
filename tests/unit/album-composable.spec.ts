@@ -35,7 +35,7 @@ describe('useAlbum', () => {
     expect(figurinhas.value).toHaveLength(1)
 
     await marcarColetada(1)
-    expect(atualizarFigurinhaDB).toHaveBeenCalledWith(1, { coletada: true })
+    expect(atualizarFigurinhaDB).toHaveBeenCalledWith(1, { coletada: true, collected_at: expect.any(String) })
   })
 
   it('filtra figurinhas por status usando SQL', async () => {
@@ -49,5 +49,27 @@ describe('useAlbum', () => {
 
     expect(filtrarFigurinhasDB).toHaveBeenCalledWith({ termo: '', coletada: true })
     expect(figurinhas.value).toHaveLength(1)
+  })
+
+  it('alterna o estado de favorito de uma figurinha', async () => {
+    vi.mocked(listarFigurinhasDB).mockResolvedValue([
+      { id: 1, nome: 'Neymar', selecao: 'Brasil', foto: 'neymar.jpg', coletada: false, favorite: false, raridade: 'Comum' }
+    ])
+    vi.mocked(atualizarFigurinhaDB).mockResolvedValue({
+      id: 1,
+      nome: 'Neymar',
+      selecao: 'Brasil',
+      foto: 'neymar.jpg',
+      coletada: false,
+      favorite: true,
+      raridade: 'Comum'
+    })
+
+    const { listar, alternarFavorito } = useAlbum()
+
+    await listar()
+    await alternarFavorito(1)
+
+    expect(atualizarFigurinhaDB).toHaveBeenCalledWith(1, { favorite: true })
   })
 })
